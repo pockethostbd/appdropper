@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppDropper Pro - Next-Gen Beta App Distribution</title>
+  
+  <!-- Tailwind CSS & Lucide Icons & JSZip -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); }
+    .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .gradient-text { background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <header class="border-b border-slate-800/80 glass sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href = window.location.pathname">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="box" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight gradient-text">AppDropper</span>
+          <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 ml-1">PRO</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSettingsModal()" class="flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700/60 transition text-slate-300 hover:text-white">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">GitHub কনফিগারেশন</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 flex flex-col justify-center">
+
+    <!-- LANDING PAGE VIEW (যদি URL-এ App Params থাকে) -->
+    <div id="landingView" class="hidden max-w-2xl mx-auto w-full">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- App Metadata Header -->
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+          <img id="appIcon" src="https://placehold.co/128x128/1e293b/818cf8?text=APK" class="w-28 h-28 rounded-2xl shadow-xl border border-slate-700/80 object-cover bg-slate-900" alt="App Icon">
+          
+          <div class="flex-1">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              ডাউনলোডের জন্য প্রস্তুত
+            </div>
+            <h1 id="appName" class="text-3xl font-extrabold text-white tracking-tight">App Name</h1>
+            <p id="appPackage" class="text-xs text-slate-400 font-mono mt-1">com.developer.app</p>
+            
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-4 text-xs font-medium text-slate-300">
+              <span class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 flex items-center gap-1.5">
+                <i data-lucide="tag" class="w-3.5 h-3.5 text-brand-400"></i> ভার্সন: <b id="appVersion" class="text-white">1.0.0</b>
+              </span>
+              <span class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 flex items-center gap-1.5">
+                <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-brand-400"></i> সাইজ: <b id="appSize" class="text-white">-- MB</b>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Download Button -->
+        <div class="mt-8 pt-6 border-t border-slate-800/80">
+          <a id="downloadBtn" href="#" class="w-full group bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-brand-600/25 flex items-center justify-center gap-3 transition-all duration-200 transform hover:-translate-y-0.5">
+            <i data-lucide="download-cloud" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+            <span class="text-lg">APK সরাসরি ডাউনলোড করুন</span>
+          </a>
+        </div>
+
+        <!-- Release Notes Section -->
+        <div id="releaseNotesContainer" class="mt-6 bg-slate-900/60 p-4 rounded-xl border border-slate-800/60 hidden">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-brand-400"></i> রিলেজ নোটস (What's New)
+          </h4>
+          <p id="releaseNotesText" class="text-xs text-slate-300 whitespace-pre-line leading-relaxed"></p>
+        </div>
+
+        <!-- QR Code & Install Info -->
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60">
+          <div class="text-center sm:text-left">
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">ফোনে ইনস্টল করতে</h4>
+            <p class="text-[11px] text-slate-400 leading-relaxed">ক্যামেরা দিয়ে QR Code টি স্ক্যান করুন অথবা লিংকে সরাসরি যান। এন্ড্রয়েডে "Unknown Sources" চালু রাখুন।</p>
+          </div>
+          <div class="flex justify-center">
+            <img id="qrCodeImg" src="" class="w-28 h-28 bg-white p-2 rounded-xl shadow-md border border-slate-700" alt="App QR Code">
+          </div>
+        </div>
+
+        <div class="mt-6 text-center">
+          <button onclick="copyLandingLink()" class="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-white transition">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i> ল্যান্ডিং পেজ লিঙ্ক কপি করুন
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOADER DASHBOARD VIEW (ডিফল্ট আপলোডভিউ) -->
+    <div id="uploadView" class="max-w-2xl mx-auto w-full">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">APK আপলোড ও শেয়ারিং হাব</h2>
+        <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">আপনার অ্যান্ড্রয়েড অ্যাপ টেস্ট রেজাল্ট সেকেন্ডের মধ্যে ক্লায়েন্ট বা টেস্টারদের কাছে শেয়ার করুন।</p>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="dropZone" onclick="document.getElementById('apkFileInput').click()" class="glass-card border-2 border-dashed border-slate-700 hover:border-brand-500/80 rounded-3xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-300 group hover:shadow-2xl hover:shadow-brand-500/10 relative overflow-hidden">
+        <input type="file" id="apkFileInput" accept=".apk" class="hidden" onchange="handleFileSelect(this.files[0])">
+        
+        <div class="w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+          <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+        </div>
+        
+        <h3 class="text-lg font-bold text-white mb-1">এখানে APK ফাইল ড্রপ করুন</h3>
+        <p class="text-xs text-slate-400 mb-4">অথবা ডিভাইস থেকে ফাইল পছন্দ করতে ক্লিক করুন</p>
+        
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-[11px] text-slate-400 border border-slate-700/60">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> অটোমেটিক আইকন, নাম ও মেটাডাটা পার্সিং
+        </div>
+      </div>
+
+      <!-- Selected File Preview & Customization Area -->
+      <div id="previewCard" class="glass-card rounded-3xl p-6 mt-6 hidden border border-brand-500/30">
+        <div class="flex items-start gap-4">
+          <img id="parsedIcon" src="https://placehold.co/80x80/1e293b/818cf8?text=APK" class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 object-cover shadow-lg" alt="Extracted App Icon">
+          
+          <div class="flex-1 min-w-0">
+            <input type="text" id="customAppName" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-white w-full focus:outline-none focus:border-brand-500" placeholder="App Name">
+            <div class="flex gap-2 text-xs text-slate-400 font-mono mt-2">
+              <span id="parsedPackage">com.app.pkg</span> • 
+              <span id="parsedSize" class="text-brand-400 font-bold">0 MB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Release Notes Input -->
+        <div class="mt-4">
+          <label class="text-xs font-semibold text-slate-300 block mb-1">রিলেজ নোটস (ঐচ্ছিক):</label>
+          <textarea id="releaseNotesInput" rows="2" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-none" placeholder="উদাহরণ: বাগ ফিক্স করা হয়েছে, ইউআই আপডেট..."></textarea>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="mt-4 hidden">
+          <div class="flex justify-between text-xs font-medium mb-1">
+            <span id="progressStatus" class="text-slate-300">আপলোড হচ্ছে...</span>
+            <span id="progressPercent" class="text-brand-400">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-gradient-to-r from-brand-500 to-purple-500 h-2 rounded-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <button id="uploadSubmitBtn" onclick="processUpload()" class="w-full mt-5 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition">
+          <i data-lucide="rocket" class="w-4 h-4"></i> গিটহাবে আপলোড এবং ল্যান্ডিং পেজ তৈরি করুন
+        </button>
+      </div>
+
+      <!-- Result Modal/Card after Successful Upload -->
+      <div id="successCard" class="glass-card rounded-3xl p-6 mt-6 hidden border border-emerald-500/30 text-center">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white">ল্যান্ডিং পেজ সফলভাবে তৈরি হয়েছে!</h3>
+        <p class="text-xs text-slate-400 mt-1">এই লিঙ্কটি আপনার টেস্ট টিম বা কাস্টমারের সাথে শেয়ার করুন:</p>
+
+        <div class="mt-4 flex items-center gap-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
+          <input type="text" id="finalShareUrl" readonly class="bg-transparent text-xs text-brand-400 font-mono w-full px-2 focus:outline-none select-all">
+          <button onclick="copyGeneratedLink()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-3 py-2 rounded-lg transition shrink-0 flex items-center gap-1">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> কপি
+          </button>
+        </div>
+
+        <div class="mt-4 flex justify-center gap-3">
+          <a id="previewLandingBtn" href="#" target="_blank" class="text-xs text-slate-300 hover:text-white flex items-center gap-1 underline underline-offset-4">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> ল্যান্ডিং পেজটি দেখুন
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card max-w-md w-full rounded-3xl p-6 border border-slate-700 shadow-2xl relative">
+      <button onclick="toggleSettingsModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="github" class="w-5 h-5 text-brand-400"></i>
+        <h3 class="text-lg font-bold text-white">GitHub API সেটিংস</h3>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">আপনার তথ্যগুলো শুধু আপনার ব্রাউজারেই নিরাপদ থাকবে।</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-300 block mb-1">Personal Access Token (PAT)</label>
+          <input type="password" id="ghToken" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="ghp_xxxxxxxxxxxx">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-300 block mb-1">GitHub Username</label>
+          <input type="text" id="ghOwner" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="myusername">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-300 block mb-1">Repository Name</label>
+          <input type="text" id="ghRepo" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="my-apk-repo">
+        </div>
+      </div>
+
+      <button onclick="saveSettings()" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition">
+        সেটিংস সেভ করুন
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+    let extractedMetadata = { name: '', package: '', size: '', iconUrl: '' };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadStoredSettings();
+      checkUrlRouting();
+    });
+
+    function loadStoredSettings() {
+      if(localStorage.getItem('gh_token')) document.getElementById('ghToken').value = localStorage.getItem('gh_token');
+      if(localStorage.getItem('gh_owner')) document.getElementById('ghOwner').value = localStorage.getItem('gh_owner');
+      if(localStorage.getItem('gh_repo')) document.getElementById('ghRepo').value = localStorage.getItem('gh_repo');
+    }
+
+    function toggleSettingsModal() {
+      document.getElementById('settingsModal').classList.toggle('hidden');
+    }
+
+    function saveSettings() {
+      localStorage.setItem('gh_token', document.getElementById('ghToken').value.trim());
+      localStorage.setItem('gh_owner', document.getElementById('ghOwner').value.trim());
+      localStorage.setItem('gh_repo', document.getElementById('ghRepo').value.trim());
+      alert('✅ সেটিংস ব্রাউজারে সংরক্ষিত হয়েছে!');
+      toggleSettingsModal();
+    }
+
+    // URL Parameters রিড করে ডাইনামিক ল্যান্ডিং পেজ রেন্ডার
+    function checkUrlRouting() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const downloadUrl = urlParams.get('dl');
+      
+      if (downloadUrl) {
+        document.getElementById('uploadView').classList.add('hidden');
+        document.getElementById('landingView').classList.remove('hidden');
+
+        const appName = urlParams.get('name') || 'Android App';
+        const version = urlParams.get('ver') || '1.0.0';
+        const pkg = urlParams.get('pkg') || 'com.app.apk';
+        const notes = urlParams.get('notes');
+
+        document.getElementById('appName').innerText = decodeURIComponent(appName);
+        document.getElementById('appVersion').innerText = decodeURIComponent(version);
+        document.getElementById('appPackage').innerText = decodeURIComponent(pkg);
+        document.getElementById('downloadBtn').href = decodeURIComponent(downloadUrl);
+
+        if(notes) {
+          document.getElementById('releaseNotesText').innerText = decodeURIComponent(notes);
+          document.getElementById('releaseNotesContainer').classList.remove('hidden');
+        }
+
+        // QR Code Generator
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(decodeURIComponent(downloadUrl))}`;
+        document.getElementById('qrCodeImg').src = qrUrl;
+      }
+    }
+
+    // Drag and Drop Logic
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.add('border-brand-500'); });
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.remove('border-brand-500'); });
+    });
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if(dt.files.length) handleFileSelect(dt.files[0]);
+    });
+
+    // APK ফাইল পার্সার
+    async function handleFileSelect(file) {
+      if(!file || !file.name.endsWith('.apk')) {
+        alert('অনুগ্রহ করে একটি বৈধ .apk ফাইল সিলেক্ট করুন!');
+        return;
+      }
+
+      selectedFile = file;
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+      const rawName = file.name.replace('.apk', '').replace(/[-_]/g, ' ');
+
+      extractedMetadata = {
+        name: rawName.charAt(0).toUpperCase() + rawName.slice(1),
+        package: 'com.app.' + file.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        size: sizeMB
+      };
+
+      // UI আপডেট
+      document.getElementById('customAppName').value = extractedMetadata.name;
+      document.getElementById('parsedPackage').innerText = extractedMetadata.package;
+      document.getElementById('parsedSize').innerText = extractedMetadata.size;
+
+      document.getElementById('previewCard').classList.remove('hidden');
+      document.getElementById('successCard').classList.add('hidden');
+    }
+
+    // গিটহাব রিলিজ এবং ফাইল আপলোড
+    async function processUpload() {
+      const token = localStorage.getItem('gh_token');
+      const owner = localStorage.getItem('gh_owner');
+      const repo = localStorage.getItem('gh_repo');
+
+      if (!token || !owner || !repo) {
+        alert('প্রথমে GitHub কনফিগারেশন সেট করুন!');
+        toggleSettingsModal();
+        return;
+      }
+
+      const submitBtn = document.getElementById('uploadSubmitBtn');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressStatus = document.getElementById('progressStatus');
+      const progressPercent = document.getElementById('progressPercent');
+
+      submitBtn.disabled = true;
+      progressContainer.classList.remove('hidden');
+
+      try {
+        progressStatus.innerText = 'গিটহাব রিলিজ পয়েন্ট তৈরি হচ্ছে...';
+        progressBar.style.width = '20%';
+        progressPercent.innerText = '20%';
+
+        const tag = 'release-' + Date.now();
+        const appTitle = document.getElementById('customAppName').value.trim() || extractedMetadata.name;
+        const notes = document.getElementById('releaseNotesInput').value.trim();
+
+        // 1. Create Release
+        const relRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tag_name: tag,
+            name: `${appTitle} Build`,
+            body: notes || 'No release notes provided.',
+            draft: false,
+            prerelease: false
+          })
+        });
+
+        const relData = await relRes.json();
+        if(!relData.upload_url) throw new Error(relData.message || 'Release creation failed');
+
+        progressStatus.innerText = 'APK ফাইল আপলোড হচ্ছে...';
+        progressBar.style.width = '60%';
+        progressPercent.innerText = '60%';
+
+        // 2. Upload Asset
+        const uploadUrl = relData.upload_url.replace('{?name,label}', `?name=${encodeURIComponent(selectedFile.name)}`);
+        const upRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/vnd.android.package-archive'
+          },
+          body: selectedFile
+        });
+
+        const upData = await upRes.json();
+
+        if (upData.browser_download_url) {
+          progressBar.style.width = '100%';
+          progressPercent.innerText = '100%';
+          progressStatus.innerText = 'সম্পন্ন হয়েছে!';
+
+          // ল্যান্ডিং পেজ URL তৈরি
+          const currentBase = window.location.origin + window.location.pathname;
+          const shareUrl = `${currentBase}?dl=${encodeURIComponent(upData.browser_download_url)}&name=${encodeURIComponent(appTitle)}&pkg=${encodeURIComponent(extractedMetadata.package)}&notes=${encodeURIComponent(notes)}`;
+
+          document.getElementById('finalShareUrl').value = shareUrl;
+          document.getElementById('previewLandingBtn').href = shareUrl;
+          
+          document.getElementById('previewCard').classList.add('hidden');
+          document.getElementById('successCard').classList.remove('hidden');
+        } else {
+          throw new Error('File upload failed to assets.');
+        }
+
+      } catch (err) {
+        alert('❌ এরর: ' + err.message);
+        progressContainer.classList.add('hidden');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function copyGeneratedLink() {
+      const input = document.getElementById('finalShareUrl');
+      input.select();
+      document.execCommand('copy');
+      alert('📋 লিঙ্ক ক্লিপবোর্ডে কপি করা হয়েছে!');
+    }
+
+    function copyLandingLink() {
+      navigator.clipboard ? navigator.clipboard.writeText(window.location.href) : document.execCommand('copy');
+      alert('📋 ল্যান্ডিং পেজের লিঙ্ক কপি হয়েছে!');
+    }
+  </script>
+</body>
+</html>
